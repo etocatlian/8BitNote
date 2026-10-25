@@ -478,7 +478,8 @@
   body[data-retro=minitel] #stripe { height: 3px; }
 
   /* Machine card: vital statistics and a short story, shown when hovering over the picture */
-  #machineArt { cursor: help; outline: none; border-radius: 4px; }
+  #machineArt { cursor: pointer; outline: none; border-radius: 4px; }
+  #machineArt:active svg { transform: translateY(1px); }
   #machineArt:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }
   #machineCard { position: fixed; z-index: 35; width: 360px; max-width: calc(100vw - 20px); max-height: calc(100vh - 80px); overflow: auto;
     background: #fff; color: #222; border: 1px solid #bbb; border-radius: 10px; box-shadow: 0 8px 28px rgba(0,0,0,.3);
@@ -1398,7 +1399,11 @@
     function build() {
       list.innerHTML = '';
       let prevGroup = null;
-      [...sel.options].forEach((o, i) => {
+      // Original machine themes aren't listed: they are reached by clicking the machine's Enter key picture.
+      // While one is in use, its Inspired version is shown as the current choice.
+      const isOriginal = o => sel === theme && themes[o.value] && themes[o.value].retro;
+      const current = sel === theme && themes[sel.value] && themes[sel.value].retro && themes[sel.value + ' Inspired'] ? sel.value + ' Inspired' : sel.value;
+      [...sel.options].filter(o => !isOriginal(o)).forEach((o, i) => {
         // thin line between groups (used by the theme list)
         const group = sel === theme && themes[o.value] ? (themes[o.value].group || 'colors') : null;
         if (i > 0 && group !== prevGroup) {
@@ -1411,7 +1416,7 @@
         li.setAttribute('role', 'option');
         li.textContent = o.textContent;
         li.dataset.value = o.value;
-        li.setAttribute('aria-selected', o.value === sel.value ? 'true' : 'false');
+        li.setAttribute('aria-selected', o.value === current ? 'true' : 'false');
         li.tabIndex = -1;
         li.onmousedown = e => e.preventDefault();   // keep the text selection
         li.onclick = () => choose(o.value);
@@ -1424,7 +1429,7 @@
       list.style.minWidth = btn.offsetWidth + 'px';
       list.hidden = false;
       btn.setAttribute('aria-expanded', 'true');
-      const cur = items.find(li => li.dataset.value === sel.value) || items[0];
+      const cur = items.find(li => li.getAttribute('aria-selected') === 'true') || items[0];
       if (cur) { list.scrollTop = Math.max(0, cur.offsetTop - list.clientHeight / 2); if (focusItem) cur.focus(); }
     }
     function close(focusBtn) {
@@ -1646,8 +1651,24 @@
     machineCard.style.left = Math.max(10, Math.min(r.right - machineCard.offsetWidth, window.innerWidth - machineCard.offsetWidth - 10)) + 'px';
   }
   function hideMachineCardSoon() { clearTimeout(cardTimer); cardTimer = setTimeout(() => { machineCard.hidden = true; }, 150); }
+  // The Enter key (or controller) picture swaps between a machine's Inspired theme and its Original theme
+  function pairedTheme(name) {
+    if (/ Inspired$/.test(name)) { const o = name.replace(/ Inspired$/, ''); return themes[o] ? o : null; }
+    return themes[name] && themes[name].retro && themes[name + ' Inspired'] ? name + ' Inspired' : null;
+  }
+  function swapMachineTheme() {
+    const other = pairedTheme(theme.value);
+    if (!other) return;
+    machineCard.hidden = true;
+    theme.value = other;
+    theme.dispatchEvent(new Event('change'));
+    const art = document.getElementById('machineArt');
+    if (document.activeElement === art) art.focus();
+  }
   {
     const art = document.getElementById('machineArt');
+    art.addEventListener('click', swapMachineTheme);
+    art.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); swapMachineTheme(); } });
     art.addEventListener('mouseenter', showMachineCard);
     art.addEventListener('mouseleave', hideMachineCardSoon);
     art.addEventListener('focus', showMachineCard);
@@ -1788,7 +1809,10 @@
     const artEl = document.getElementById('machineArt');
     artEl.innerHTML = machineSVG(mid, t.menu);
     fillMachineCard(mid);
-    artEl.setAttribute('aria-label', MACHINE_INFO[mid] ? MACHINE_INFO[mid].name + ' (hover or focus for details)' : '');
+    const pair = pairedTheme(theme.value);
+    artEl.setAttribute('aria-label', MACHINE_INFO[mid] ? MACHINE_INFO[mid].name + (pair ? '. Press Enter to switch to the ' + pair + ' theme.' : '') : '');
+    artEl.title = pair ? 'Click to switch to ' + pair : '';
+    artEl.setAttribute('role', pair ? 'button' : 'img');
     artEl.tabIndex = MACHINE_INFO[mid] ? 0 : -1;
     machineCard.hidden = true;
     // Only this theme's own system font is added to the list, and it becomes the note's font
@@ -1992,14 +2016,14 @@
   // ---- Load what was saved before ----
   let saved = {};
   try {
-    saved = JSON.parse(localStorage.getItem('notepad-v44') || localStorage.getItem('notepad-v43') || localStorage.getItem('notepad-v42') || localStorage.getItem('notepad-v41') || localStorage.getItem('notepad-v40') || localStorage.getItem('notepad-v39') || localStorage.getItem('notepad-v38') || localStorage.getItem('notepad-v37') || localStorage.getItem('notepad-v36') || localStorage.getItem('notepad-v35') || localStorage.getItem('notepad-v34') || localStorage.getItem('notepad-v33') || localStorage.getItem('notepad-v32') || localStorage.getItem('notepad-v31') || localStorage.getItem('notepad-v30') || localStorage.getItem('notepad-v29') || localStorage.getItem('notepad-v28') || localStorage.getItem('notepad-v27') || localStorage.getItem('notepad-v26') || localStorage.getItem('notepad-v25') || localStorage.getItem('notepad-v24') || localStorage.getItem('notepad-v23') || localStorage.getItem('notepad-v22') || localStorage.getItem('notepad-v21') || localStorage.getItem('notepad-v20') || localStorage.getItem('notepad-v19') || localStorage.getItem('notepad-v18') || localStorage.getItem('notepad-v17') || localStorage.getItem('notepad-v16') || localStorage.getItem('notepad-v15') || localStorage.getItem('notepad-v14') || localStorage.getItem('notepad-v13') || localStorage.getItem('notepad-v12') || localStorage.getItem('notepad-v11') || localStorage.getItem('notepad-v10') || localStorage.getItem('notepad-v9') || localStorage.getItem('notepad-v8') || localStorage.getItem('notepad-v7') || localStorage.getItem('notepad-v6') || localStorage.getItem('notepad-v5') ||
+    saved = JSON.parse(localStorage.getItem('notepad-v46') || localStorage.getItem('notepad-v45') || localStorage.getItem('notepad-v44') || localStorage.getItem('notepad-v43') || localStorage.getItem('notepad-v42') || localStorage.getItem('notepad-v41') || localStorage.getItem('notepad-v40') || localStorage.getItem('notepad-v39') || localStorage.getItem('notepad-v38') || localStorage.getItem('notepad-v37') || localStorage.getItem('notepad-v36') || localStorage.getItem('notepad-v35') || localStorage.getItem('notepad-v34') || localStorage.getItem('notepad-v33') || localStorage.getItem('notepad-v32') || localStorage.getItem('notepad-v31') || localStorage.getItem('notepad-v30') || localStorage.getItem('notepad-v29') || localStorage.getItem('notepad-v28') || localStorage.getItem('notepad-v27') || localStorage.getItem('notepad-v26') || localStorage.getItem('notepad-v25') || localStorage.getItem('notepad-v24') || localStorage.getItem('notepad-v23') || localStorage.getItem('notepad-v22') || localStorage.getItem('notepad-v21') || localStorage.getItem('notepad-v20') || localStorage.getItem('notepad-v19') || localStorage.getItem('notepad-v18') || localStorage.getItem('notepad-v17') || localStorage.getItem('notepad-v16') || localStorage.getItem('notepad-v15') || localStorage.getItem('notepad-v14') || localStorage.getItem('notepad-v13') || localStorage.getItem('notepad-v12') || localStorage.getItem('notepad-v11') || localStorage.getItem('notepad-v10') || localStorage.getItem('notepad-v9') || localStorage.getItem('notepad-v8') || localStorage.getItem('notepad-v7') || localStorage.getItem('notepad-v6') || localStorage.getItem('notepad-v5') ||
       localStorage.getItem('notepad-v4') || localStorage.getItem('notepad-v3') ||
       localStorage.getItem('notepad-v2') || '{}');
   } catch (e) {}
   // A note started with "New" keeps its own copy, named after the #note=… part of its address;
   // it begins empty, with the look (theme, font, size, colours) of the note it came from
   const NOTE_ID = (location.hash.match(/note=([\w-]+)/) || [])[1] || null;
-  const NOTE_KEY = NOTE_ID ? 'notepad-note-' + NOTE_ID : 'notepad-v44';
+  const NOTE_KEY = NOTE_ID ? 'notepad-note-' + NOTE_ID : 'notepad-v46';
   if (NOTE_ID) {
     let own = null;
     try { own = JSON.parse(localStorage.getItem(NOTE_KEY) || 'null'); } catch (e) {}
