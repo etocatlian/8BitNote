@@ -1,5 +1,5 @@
 // 8BitNote offline helper: keeps the app and its web fonts so it opens without a connection.
-const CACHE = '8bitnote-v57';
+const CACHE = '8bitnote-v66';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-256.png', './icon-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => {
